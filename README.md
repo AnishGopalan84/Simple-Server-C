@@ -10,8 +10,8 @@ compile and run server in terminal
 
 for connecting use netcat command from other terminal...
 
-nc "your pc IP" or "127.0.0.1" if using same PC.
-
+nc "your pc IP" or "127.0.0.1" if using same PC portnumber 1234
+$ nc 127.0.0.1 1234
 Available Command..
 
 login #username#  "Register or Existing user logon"
