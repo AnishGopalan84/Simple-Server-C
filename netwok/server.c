@@ -47,11 +47,34 @@ int main(int argc,char *argv[])
     listen(sockfd, 5);
     ///ACCEPT CONNECTION
     int cli_add_Size = sizeof(cli_add);
+
+while (1)
+{
     int newsockfd = accept(sockfd, (struct sockaddr *) &cli_add,&cli_add_Size);
-     ///HANDS OF TO FUNCTION
+    int pid = fork();
+    if (pid < 0)
+    {
+
+perror("Could not fork");
+exit(1);
+    }
+    else if (pid == 0)
+    {
+        //this is child process
+        close(sockfd);
+            ///HANDS OF TO FUNCTION
         write_fun(newsockfd);
+        
+    }
+    else
+    {
+    // this is parent process        
     //close the socket
     close(newsockfd);
+    } 
+}
+
+   
     close(sockfd);
    /// for checking open port netstat -an | grep 1234
     return 0;
@@ -134,6 +157,7 @@ while (1)
             sprintf(query ,"INSERT INTO userlist (uname) values ('%s')",username);            
             sqlite3_prepare(db,query,strlen(query),&stmt,NULL);
             sqlite3_step(stmt);
+            sqlite3_finalize(stmt);
             //Adding Finished
             }
         // Send Back Conformation
@@ -228,6 +252,7 @@ while (1)
         sprintf(query ,"INSERT INTO queue (qFrom,qTo) VALUES ('%s','%s')",username,userTo);
         sqlite3_prepare(db,query,strlen(query),&stmt,NULL);
         sqlite3_step(stmt);
+        sqlite3_finalize(stmt); sqlite3_finalize(stmt1);
         sprintf(buf,"'%s' is Queued\n",userTo);
         send(sock,buf,strlen(buf),0);
         }
@@ -264,6 +289,7 @@ while (1)
         sprintf(query ,"DELETE FROM queue Where qTo = ('%s')",username);
         sqlite3_prepare(db,query,strlen(query),&stmt,NULL);
         sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
         clrBuf(buf);
     }
     ///////////////////////////////////////////////
