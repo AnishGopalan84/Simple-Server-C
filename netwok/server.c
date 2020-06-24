@@ -8,12 +8,16 @@
 #include <sqlite3.h>
 #include <string.h>
 const int PORTNUM = 1234;
+void clrBuf(char *buf);
 /*
-GREETING MESSAGE
-SEND 
-COLLECT YOLO
-LIST ALL YOSR
-EXIT NOYO
+HI GREETINGS 
+LOGIN "USER NAME"//ADD USER AUTOMATICALLY
+LOGOUT
+LISTUSER
+SEND "MSG"
+QUEUE "SENDING POKE OR HI""USER NAME"
+HIMSG "VIEWING OUR HI MESSAGES"
+EXIT 
 */
 void write_fun(int sock);
 void complaint(int sock);
@@ -71,11 +75,13 @@ if(sqlite3_open("user.db",&db))
 // SENDING GREETINGS
 strcpy(buf,"hi there Greeting ......:\n");
 send(sock,buf,strlen(buf),0);
+clrBuf(buf);
 int state = NOT_AUTH;
 //Receive Message Wait for Reply
 while (1)
 {
     /* code */
+    
     recv(sock,buf,1000,0);
     ///////////////////////////////
     if (!strncmp("exit",buf,4))
@@ -85,15 +91,21 @@ while (1)
         close(sock);
         return;
     }
-    ///////////////////////////////
+    ///////////////////////////////    
     else if(!strncmp("login",buf,5))
     {
         //char * username = buf + 5;
     if(!state){
         
-        sscanf(buf + 5,"%s",username);
-        printf("user name is::: %s \n",username);
+        sscanf(buf + 5,"%s",username);        
         ///Adding user in the Database
+        if (strlen(username) == 1)
+        {
+            printf("Supply more than one Character....\n");
+        }
+        else
+        {    
+             printf("user name is:::..%s.. \n",username);
             char query[1000];
             sqlite3_stmt *stmt;            
             ///check user Avaiable in List Before Adding
@@ -106,15 +118,16 @@ while (1)
             strcpy(buf,(char *)sqlite3_column_text(stmt1,0));
             if (buf == username)
             {
-                printf("Username Avaiable/n");
+                //printf("Username Avaiable/n");
                 usradd = 0;
                 break;
             }
             else
             {                
                 usradd = 1;
-                printf("New User/n");                
+                //printf("New User/n");                
             }    
+            
         }       
             if (usradd){
             //Adding User In Db
@@ -123,21 +136,18 @@ while (1)
             sqlite3_step(stmt);
             //Adding Finished
             }
-            /*if (sqlite3_step(stmt) == SQLITE_ERROR)
-            {
-                strcpy(buf,"User Already Exists\n");
-                continue;
-            }*/
         // Send Back Conformation
         strcpy(buf,"Welcome you are Logged in>>\n");
         state = LOGGED_IN;
         send(sock,buf,strlen(buf),0);
+    }
     }
     else
     {
         strcpy(buf,"Already you are Logged in>>\n");
         send(sock,buf,strlen(buf),0); 
     }    
+    clrBuf(buf);
     }////////////////////////////////////////
      else if(!strncmp("send",buf,4))
     {
@@ -150,6 +160,7 @@ while (1)
         // Send Back Conformation
         strcpy(buf,"Message Send.......>>\n");
         send(sock,buf,strlen(buf),0);
+        clrBuf(buf);
     }///////////////////////////////////
      else if(!strncmp("logout",buf,6))
     {
@@ -160,6 +171,7 @@ while (1)
         // Send Back Conformation
         strcpy(buf, "you are Logged out..>>\n");
         send(sock,buf,strlen(buf),0);
+        clrBuf(buf);
     }//////////////////////////////////
      else if(!strncmp("listuser",buf,8))
     {
@@ -193,6 +205,7 @@ while (1)
         }   ///send".""
          strcpy(buf,".\n");
         send(sock,buf,strlen(buf),0);
+        clrBuf(buf);
     }    ////////////////////////////////////////
       else if(!strncmp("queue",buf,5))
     {
@@ -200,13 +213,30 @@ while (1)
         //Queuing the user List:::::
         sqlite3_stmt *stmt;
         char query[1000];
+        char query1[1000];
         char userTo[1000];
+        int usercnt;
         sscanf(buf + 5,"%s",userTo);
+        //query user Exists
+        sqlite3_stmt *stmt1;
+        sprintf(query1 ,"select count(*) from userlist where uname = ('%s')",userTo);
+        sqlite3_prepare(db,query1,strlen(query1),&stmt1,NULL);
+        sqlite3_step(stmt1);
+        usercnt = sqlite3_column_int(stmt1,0);
+        if (usercnt != 0)
+        {
         sprintf(query ,"INSERT INTO queue (qFrom,qTo) VALUES ('%s','%s')",username,userTo);
         sqlite3_prepare(db,query,strlen(query),&stmt,NULL);
         sqlite3_step(stmt);
         sprintf(buf,"'%s' is Queued\n",userTo);
         send(sock,buf,strlen(buf),0);
+        }
+        else
+        {
+         sprintf(buf,"'%s' is Not in UserList\n",userTo);
+        send(sock,buf,strlen(buf),0);
+        }
+        clrBuf(buf);
         //////////////////////////////////////////
     }
     else if(!strncmp("himsg",buf,5))
@@ -234,12 +264,14 @@ while (1)
         sprintf(query ,"DELETE FROM queue Where qTo = ('%s')",username);
         sqlite3_prepare(db,query,strlen(query),&stmt,NULL);
         sqlite3_step(stmt);
+        clrBuf(buf);
     }
     ///////////////////////////////////////////////
 else
     {
          strcpy(buf,"Wrong Code >>>>\n");
         send(sock,buf,strlen(buf),0);
+        clrBuf(buf);
     }   
   }
 }
@@ -248,4 +280,11 @@ void complaint(int sock)
 char buf[1000];
 strcpy(buf,"Not Logged in....\n");
 send(sock,buf,strlen(buf),0);
+}
+void clrBuf(char *buf)
+{
+    for (int i=0; i < 50; i++)
+    {
+        buf[i] = '\0';
+    }
 }
